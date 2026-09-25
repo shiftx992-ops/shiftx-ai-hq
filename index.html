@@ -20,7 +20,7 @@ main{padding:28px;max-width:1250px;width:100%;margin:auto}.eyebrow{font-size:11p
 <aside class="side">
 <div class="brand"><div class="logo">SX</div><div><b>SHIFTX AGENT</b><small>AI COMPANY HQ</small></div></div>
 <div class="nav">
-<button class="active">⌂ Dashboard</button><button>◉ Employees</button><button>▦ Departments</button><button>▤ Projects</button><button>✓ Tasks</button>
+<button class="active" data-page="dashboard">⌂ Dashboard</button><button data-page="employees">◉ Employees</button><button data-page="departments">▦ Departments</button><button data-page="projects">▤ Projects</button><button data-page="tasks">✓ Tasks</button><button data-page="company">◎ Company Brain</button>
 </div>
 <div style="margin-top:24px;padding:14px;border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:12px">👑 <b style="color:var(--text)">You — CEO</b><br>Manager AI is ready.</div>
 </aside>
@@ -41,6 +41,20 @@ main{padding:28px;max-width:1250px;width:100%;margin:auto}.eyebrow{font-size:11p
 <section class="panel"><div class="panelhead"><b>AI Workforce</b><button class="btn secondary" id="hire">+ Hire</button></div><div class="rows" id="workers"></div></section>
 <section class="panel"><div class="panelhead"><b>Manager Activity</b><button class="btn secondary" id="clear">Clear</button></div><div class="activity" id="activity"></div></section>
 </div>
+<section class="panel" style="margin-top:16px">
+<div class="panelhead"><b>Company Brain</b><span class="hint">Your ShiftX blueprint</span></div>
+<div style="padding:16px"><div class="rows" style="padding:0">
+<div class="row"><div><b>👑 CEO</b><div class="meta">You own strategy, approvals, projects, departments, and hiring.</div></div></div>
+<div class="row"><div><b>🤖 Manager / COO</b><div class="meta">Turns CEO commands into tasks, assigns employees, monitors work, and reports results.</div></div></div>
+<div class="row"><div><b>🎬 Video Production</b><div class="meta">Writer · Alex (Video Producer) · future editing, voice, and music agents.</div></div></div>
+<div class="row"><div><b>🔎 Research</b><div class="meta">Nova (Research Analyst) · future fact-checking and market-research agents.</div></div></div>
+<div class="row"><div><b>🎨 Creative</b><div class="meta">Pixel (Creative Designer) · future image, logo, and thumbnail agents.</div></div></div>
+<div class="row"><div><b>💻 Engineering</b><div class="meta">Code (Software Engineer) · future coding, testing, and deployment agents.</div></div></div>
+<div class="row"><div><b>🌐 Planned domain</b><div class="meta">shiftxagent.com · connect after domain DNS is configured. GitHub reported the DNS check unsuccessful until the required records are in place.</div></div></div>
+<div class="row"><div><b>🧱 Build path</b><div class="meta">GitHub repository → GitHub Pages or Cloudflare Pages → custom domain → persistent database → real AI tools.</div></div></div>
+<div class="row"><div><b>💸 Cost goal</b><div class="meta">$0/month whenever possible; paid services only when needed and ideally under $1/month.</div></div></div>
+</div></div>
+</section>
 </main>
 </div>
 <script>
@@ -68,6 +82,7 @@ function run(c){if(!c.trim())return;const picked=choose(c);tasks.push({c,s:"work
 function render(){byId("ec").textContent=employees.length;byId("tc").textContent=tasks.filter(x=>x.s!=="completed").length;byId("cc").textContent=tasks.filter(x=>x.s==="completed").length;
 byId("workers").innerHTML=employees.map(e=>'<div class="row"><div class="left"><div class="avatar">'+e.name[0]+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+" · "+e.dept+'</div></div></div><span class="badge '+(e.s==="working"?"working":"")+'">'+e.s+'</span></div>').join("");
 byId("activity").innerHTML=logs.length?logs.map(x=>'<div class="item"><b>'+x.a+'</b><small>'+x.b+" · "+x.t+"</small></div>").join(""):'<div class="empty">No activity yet.</div>'}
+document.querySelectorAll(".nav button").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));btn.classList.add("active");if(btn.dataset.page==="company"){document.querySelector(".panel[style]").scrollIntoView({behavior:"smooth"});}});
 byId("run").onclick=()=>run(byId("command").value);
 byId("demo").onclick=()=>{byId("command").value="Research the best free AI video tools and create a report for the CEO.";run(byId("command").value)};
 byId("clear").onclick=()=>{logs=[];save();render()};
