@@ -41,3 +41,10 @@ Use Local Ollama for models running on your own computer, and consider OpenRoute
 ## Deployment
 
 The included `functions/api/chat.js` is intended for a serverless Pages Functions host. GitHub Pages serves the UI, but it does not execute that server function. To make live AI responses work on the public site, deploy the same repository to a Pages Functions-compatible host and configure the server secrets there.
+
+
+## Consensus mode
+
+The default ShiftX mode is **Consensus — All connected AIs**. For a CEO question, the backend asks every configured provider independently, compares the returned answers, and produces one final response. It does not assume unanimity; if material disagreement exists, the final response should state the uncertainty.
+
+A provider is included only when both its server API key and model ID are configured. The final synthesis uses a configured provider with `CONSENSUS_MODEL` or the selected synthesis provider model.
