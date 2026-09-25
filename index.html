@@ -69,33 +69,140 @@ const employees=[
 {name:"Pixel",role:"Creative Designer",dept:"Creative",icon:"P"},
 {name:"Code",role:"Software Engineer",dept:"Engineering",icon:"C"}
 ];
-const state={view:"chat",messages:JSON.parse(localStorage.sxMessages||"[]"),chats:JSON.parse(localStorage.sxChats||"[]"),tasks:JSON.parse(localStorage.sxTasks||"[]"),memory:JSON.parse(localStorage.sxMemory||"[]"),selectedTools:[]};
+
+const state={
+ view:location.hash.replace("#/","")||"chat",
+ messages:JSON.parse(localStorage.sxMessages||"[]"),
+ chats:JSON.parse(localStorage.sxChats||"[]"),
+ tasks:JSON.parse(localStorage.sxTasks||"[]"),
+ selectedTools:JSON.parse(localStorage.sxTools||"[]"),
+ provider:localStorage.sxProvider||"ShiftX Manager"
+};
+
 const $=id=>document.getElementById(id);
-function save(){localStorage.sxMessages=JSON.stringify(state.messages);localStorage.sxChats=JSON.stringify(state.chats);localStorage.sxTasks=JSON.stringify(state.tasks);localStorage.sxMemory=JSON.stringify(state.memory)}
+function save(){
+ localStorage.sxMessages=JSON.stringify(state.messages);
+ localStorage.sxChats=JSON.stringify(state.chats);
+ localStorage.sxTasks=JSON.stringify(state.tasks);
+ localStorage.sxTools=JSON.stringify(state.selectedTools);
+ localStorage.sxProvider=state.provider;
+}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function choose(c){const s=c.toLowerCase(),out=[];const add=n=>{const e=employees.find(x=>x.name===n);if(e&&!out.includes(e))out.push(e)};if(/research|compare|find|fact|market|price|search/.test(s))add("Nova");if(/script|write|story|content|youtube|tiktok|reel/.test(s))add("Writer");if(/video|film|animation|prompt/.test(s))add("Alex");if(/thumbnail|logo|design|image|creative/.test(s))add("Pixel");if(/code|app|website|software|bug|build|github/.test(s))add("Code");return out.length?out:employees.slice(0,1)}
-function reply(c,picked){const tools=state.selectedTools.length?" using "+state.selectedTools.join(", "):"";return "Manager received your command and routed it to "+picked.map(x=>x.name).join(", ")+"."+tools+" This prototype is now tracking the assignment; live external tools can be connected in the next backend phase."}
-function renderAgents(){ $("agents").innerHTML=employees.map(e=>'<div class="row"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+' · '+e.dept+'</div></div></div><span class="badge green">ready</span></div>').join("")}
-function renderRecent(){ $("recent").innerHTML=state.chats.slice(0,8).map((c,i)=>'<button data-chat="'+i+'">'+esc(c.title)+'</button>').join("")||'<div class="hint" style="padding:7px">No saved chats yet.</div>';document.querySelectorAll("[data-chat]").forEach(b=>b.onclick=()=>{const i=+b.dataset.chat;state.messages=state.chats[i].messages||[];save();state.view="chat";render()})}
-function renderMessages(){return state.messages.length?state.messages.map(m=>'<div class="msg '+m.role+'"><div class="avatar">'+(m.role==="user"?"CEO":"SX")+'</div><div class="bubble">'+esc(m.text).replace(/\n/g,"<br>")+'</div></div>').join(""):'<div class="hero"><h1>What can ShiftX Agent do?</h1><p>You give the command. The Manager plans it, routes it, and coordinates the workforce.</p></div>'}
-function viewChat(){return '<div class="page-inner" id="chatInner">'+renderMessages()+'</div>'}
-function viewAgents(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Agents & Teams</h1><p>Create a workforce of specialized AI employees. The Manager can route tasks between them.</p></div><div class="grid3">'+employees.map(e=>'<div class="panel"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+'</div></div></div><p>Department: '+e.dept+'<br>Status: ready</p><button class="secondary" onclick="alert(\'Employee configuration editor is next.\')">Configure</button></div>').join("")+'</div><div class="panel" style="margin-top:14px"><h2>Hire an employee</h2><p>Add a specialized worker to the company.</p><div class="form"><div class="field"><label>Name</label><input id="hireName" placeholder="Nova"></div><div class="field"><label>Role</label><input id="hireRole" placeholder="Research Analyst"></div><button class="primary" onclick="hire()">Hire Employee</button></div></div></div>'}
-function viewKnowledge(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Knowledge</h1><p>The information the Manager uses to understand ShiftX and its setup.</p></div><div class="grid"><div class="panel"><h2>Company structure</h2><p><b>CEO:</b> You<br><b>Manager:</b> ShiftX Manager / COO<br><b>Departments:</b> Research, Video Production, Creative, Engineering</p></div><div class="panel"><h2>Build stack</h2><p>GitHub repository → GitHub Pages / Cloudflare → custom domain → backend → persistent database → live AI tools.</p></div><div class="panel"><h2>Cost target</h2><p>$0/month whenever possible. Paid services only when needed and ideally under $1/month.</p></div><div class="panel"><h2>Domain setup</h2><p><b>shiftxagent.com</b><br>Root A records: 185.199.108.153, .109.153, .110.153, .111.153<br><br><b>www</b> CNAME: shiftx992-ops.github.io</p></div></div></div>'}
-function viewProjects(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Projects</h1><p>Projects are grouped work for the AI company.</p></div><div class="grid"><div class="panel"><h2>ShiftX Agent v0.1</h2><p>CEO command center, workforce, routing, company brain, and local browser storage.</p><span class="badge green">active</span></div><div class="panel"><h2>Jarvis-style upgrade</h2><p>Chat-first interface, tool controls, recent chats, knowledge, agents, and manager planning.</p><span class="badge green">active</span></div></div></div>'}
-function viewAutomations(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Automations</h1><p>Scheduled and repeatable company jobs will live here.</p></div><div class="panel"><h2>Automation engine</h2><p>No live schedules are connected yet. The next backend phase can add recurring tasks, triggers, and approval gates.</p><button class="primary" onclick="alert(\'Automation builder is queued for the backend phase.\')">Create Automation</button></div></div>'}
-function viewTasks(){const active=state.tasks.filter(t=>t.status!=="done");return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Tasks</h1><p>Every CEO command becomes a trackable assignment.</p></div><div class="panel">'+(active.length?active.map(t=>'<div class="row"><div><b>'+esc(t.text)+'</b><div class="meta">'+esc(t.assignees.join(", "))+'</div></div><span class="badge">'+t.status+'</span></div>').join(""):'<div class="hint">No tasks yet.</div>')+'</div></div>'}
-function viewCompany(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Company Brain</h1><p>The current operating plan for ShiftX Agent.</p></div><div class="grid"><div class="panel"><h2>CEO</h2><p>You make the company decisions, approve sensitive actions, define goals, and issue commands.</p></div><div class="panel"><h2>Manager / COO</h2><p>Breaks CEO requests into tasks, assigns employees, tracks progress, and reports results.</p></div><div class="panel"><h2>AI hiring model</h2><p>Managers can propose new specialist employees and eventually create sub-teams under controlled approvals.</p></div><div class="panel"><h2>Current workforce</h2><p>'+employees.map(e=>e.name+' — '+e.role).join('<br>')+'</p></div></div></div>'}
-function viewSettings(){return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Settings</h1><p>Configure the prototype and prepare for live connections.</p></div><div class="grid"><div class="panel"><h2>AI provider</h2><div class="form"><div class="field"><label>Selected model</label><select><option>ShiftX Manager</option><option>Local Ollama</option><option>Gemini</option><option>OpenAI</option></select></div><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div></div><div class="panel"><h2>Data</h2><p>Prototype data is stored locally in your browser.</p><button class="danger" onclick="clearData()">Clear local data</button></div></div></div>'}
-function render(){const titles={chat:"ShiftX Chat",agents:"Agents & Teams",knowledge:"Knowledge",projects:"Projects",automations:"Automations",tasks:"Tasks",company:"Company Brain",settings:"Settings"};$("title").textContent=titles[state.view];$("status").textContent=state.view==="chat"?"Manager online · prototype":"Section ready · prototype";document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));$("page").innerHTML={chat:viewChat,agents:viewAgents,knowledge:viewKnowledge,projects:viewProjects,automations:viewAutomations,tasks:viewTasks,company:viewCompany,settings:viewSettings}[state.view]();$("composer").style.display=state.view==="chat"?"block":"none";renderAgents();renderRecent();if(state.view==="chat")setTimeout(()=>{$("input").focus()},0)}
-function send(){const c=$("input").value.trim();if(!c)return;state.view="chat";const picked=choose(c);state.messages.push({role:"user",text:c});state.tasks.unshift({text:c,assignees:picked.map(x=>x.name),status:"working"});state.memory.unshift(c);state.chats.unshift({title:c.slice(0,50),messages:[...state.messages]});state.chats=state.chats.slice(0,12);save();$("input").value="";render();$("plan").innerHTML=picked.map(e=>'<div class="row"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+'</div></div></div></div>').join("");$("planBadge").textContent="working";state.messages.push({role:"assistant",text:reply(c,picked)});save();render();setTimeout(()=>{$("planBadge").textContent="ready";state.tasks[0].status="done";save();render()},900)}
-function hire(){const n=$("hireName").value.trim(),r=$("hireRole").value.trim();if(!n||!r)return alert("Enter a name and role.");employees.push({name:n,role:r,dept:"New Department",icon:n[0].toUpperCase()});save();render()}
-function clearData(){localStorage.removeItem("sxMessages");localStorage.removeItem("sxChats");localStorage.removeItem("sxTasks");localStorage.removeItem("sxMemory");location.reload()}
-document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{state.view=b.dataset.view;render()});
+function choose(c){
+ const s=c.toLowerCase(),out=[];
+ const add=n=>{const e=employees.find(x=>x.name===n);if(e&&!out.includes(e))out.push(e)};
+ if(/research|compare|find|fact|market|price|search/.test(s))add("Nova");
+ if(/script|write|story|content|youtube|tiktok|reel/.test(s))add("Writer");
+ if(/video|film|animation|prompt/.test(s))add("Alex");
+ if(/thumbnail|logo|design|image|creative/.test(s))add("Pixel");
+ if(/code|app|website|software|bug|build|github/.test(s))add("Code");
+ if(/hire|employee|agent|team/.test(s))return employees.slice(0,2);
+ return out.length?out:[employees[0]];
+}
+function providerDescription(){
+ return {
+  "ShiftX Manager":"ShiftX's orchestration layer. In the live backend, this will plan tasks and route work.",
+  "Local Ollama":"Local model option for running AI on your computer with no per-request API bill.",
+  "Gemini":"Google Gemini provider option. A backend/API key is required for live calls.",
+  "OpenAI":"OpenAI provider option. A backend/API key is required for live calls."
+ }[state.provider]||"Provider option";
+}
+function renderAgents(){
+ $("agents").innerHTML=employees.map(e=>'<div class="row"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+' · '+e.dept+'</div></div></div><span class="badge green">ready</span></div>').join("");
+}
+function renderRecent(){
+ $("recent").innerHTML=state.chats.slice(0,10).map((c,i)=>'<button data-chat="'+i+'">'+esc(c.title)+'</button>').join("")||'<div class="hint" style="padding:7px">No saved chats yet.</div>';
+ document.querySelectorAll("[data-chat]").forEach(b=>b.onclick=()=>{state.messages=state.chats[+b.dataset.chat].messages||[];navigate("chat")});
+}
+function messagesHtml(){
+ if(!state.messages.length)return '<div class="hero"><h1>What can ShiftX Agent do?</h1><p>You give the command. The Manager plans it, routes it, and coordinates the workforce.</p></div>';
+ return state.messages.map(m=>'<div class="msg '+m.role+'"><div class="avatar">'+(m.role==="user"?"CEO":"SX")+'</div><div class="bubble">'+esc(m.text).replace(/\n/g,"<br>")+'</div></div>').join("");
+}
+function renderChat(){return '<div class="page-inner">'+messagesHtml()+'</div>'}
+function renderAgentsPage(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Agents & Teams</h1><p>Create specialized employees and route work through the Manager.</p></div>'+
+ '<div class="grid3">'+employees.map(e=>'<div class="panel"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+'</div></div></div><p>Department: '+e.dept+'<br>Status: ready</p><button class="secondary" data-config="'+esc(e.name)+'">Configure</button></div>').join("")+'</div>'+
+ '<div class="panel" style="margin-top:14px"><h2>Hire an employee</h2><p>Add a specialized worker to the company.</p><div class="form"><div class="field"><label>Name</label><input id="hireName" placeholder="Nova"></div><div class="field"><label>Role</label><input id="hireRole" placeholder="Research Analyst"></div><div class="field"><label>Department</label><select id="hireDept"><option>Research</option><option>Video Production</option><option>Creative</option><option>Engineering</option></select></div><button class="primary" id="hireBtn">Hire Employee</button></div></div></div>';
+}
+function renderKnowledge(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Knowledge</h1><p>Company information available to the Manager.</p></div><div class="grid">'+
+ '<div class="panel"><h2>Company structure</h2><p><b>CEO:</b> You<br><b>Manager:</b> ShiftX Manager / COO<br><b>Departments:</b> Research, Video Production, Creative, Engineering</p></div>'+
+ '<div class="panel"><h2>Build stack</h2><p>GitHub → GitHub Pages / Cloudflare → custom domain → backend → database → live AI tools.</p></div>'+
+ '<div class="panel"><h2>Cost target</h2><p>$0/month whenever possible. Paid services only when needed and ideally under $1/month.</p></div>'+
+ '<div class="panel"><h2>Domain setup</h2><p><b>shiftxagent.com</b><br>A records: 185.199.108.153 / .109.153 / .110.153 / .111.153<br><br><b>www</b> CNAME: shiftx992-ops.github.io</p></div></div></div>';
+}
+function renderProjects(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Projects</h1><p>Company projects and their current state.</p></div><div class="grid">'+
+ '<div class="panel"><h2>ShiftX Agent v0.1</h2><p>CEO command center, workforce, routing, company brain, and local storage.</p><span class="badge green">active</span></div>'+
+ '<div class="panel"><h2>Jarvis-style interface</h2><p>Chat-first UI, provider selector, tool buttons, history, knowledge, agents, tasks, and manager planning.</p><span class="badge green">active</span></div></div></div>';
+}
+function renderAutomations(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Automations</h1><p>Schedule repeatable jobs and approval-gated actions.</p></div><div class="panel"><h2>Automation engine</h2><p>Prototype screen. Live schedules and triggers require the backend phase.</p><button class="primary" id="newAutomation">Create Automation</button></div></div>';
+}
+function renderTasks(){
+ const all=state.tasks;
+ return '<div class="page-inner"><div class="top" style="margin-bottom:15px"><div><div class="eyebrow">ShiftX Work Queue</div><h1 style="margin:5px 0">Tasks</h1><p class="sub">Every CEO command can become a persistent, assignable task.</p></div><button class="primary" id="newTask">+ New Task</button></div>'+
+ '<div class="panel"><div class="cardhead"><div class="title-sm">Task Queue</div><span class="badge">'+all.length+' total</span></div>'+
+ (all.length?all.map((t,i)=>'<div class="row"><div style="min-width:0"><b>'+esc(t.text)+'</b><div class="meta">Assigned: '+esc(t.assignees.join(", "))+' · Created '+esc(t.created)+'</div></div><div style="display:flex;gap:6px;align-items:center"><span class="badge '+(t.status==="done"?"green":"")+'">'+esc(t.status)+'</span><button class="secondary" data-toggle="'+i+'">'+(t.status==="done"?"Reopen":"Complete")+'</button><button class="danger" data-delete="'+i+'">Delete</button></div></div>').join(""):'<div class="hint" style="padding:18px">No tasks yet. Use Chat to give the Manager a command, or click + New Task.</div>')+
+ '</div></div>';
+}
+function renderCompany(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Company Brain</h1><p>The operating plan and facts used by ShiftX Agent.</p></div><div class="grid">'+
+ '<div class="panel"><h2>👑 CEO</h2><p>You define goals, approve sensitive actions, and issue commands.</p></div>'+
+ '<div class="panel"><h2>🤖 Manager / COO</h2><p>Breaks requests into tasks, assigns employees, tracks progress, and reports results.</p></div>'+
+ '<div class="panel"><h2>AI hiring model</h2><p>Managers can propose specialist employees and, in a later live-agent phase, create controlled sub-teams.</p></div>'+
+ '<div class="panel"><h2>Current workforce</h2><p>'+employees.map(e=>e.name+' — '+e.role).join('<br>')+'</p></div></div></div>';
+}
+function renderSettings(){
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Settings</h1><p>Choose the AI provider the ShiftX Manager will use when the live backend is connected.</p></div>'+
+ '<div class="grid"><div class="panel"><h2>AI Brain</h2><div class="field"><label>Provider / model source</label><select id="settingsProvider"><option>ShiftX Manager</option><option>Local Ollama</option><option>Gemini</option><option>OpenAI</option></select></div><p id="providerHelp" style="margin-top:10px"></p><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div>'+
+ '<div class="panel"><h2>Prototype data</h2><p>Tasks, chats, and settings are stored locally in this browser until the backend is connected.</p><button class="danger" id="clearData">Clear local data</button></div></div></div>';
+}
+function render(){
+ const views={chat:renderChat,agents:renderAgentsPage,knowledge:renderKnowledge,projects:renderProjects,automations:renderAutomations,tasks:renderTasks,company:renderCompany,settings:renderSettings};
+ const titles={chat:"ShiftX Chat",agents:"Agents & Teams",knowledge:"Knowledge",projects:"Projects",automations:"Automations",tasks:"Tasks",company:"Company Brain",settings:"Settings"};
+ const view=views[state.view]?state.view:"chat"; state.view=view;
+ $("title").textContent=titles[view];$("status").textContent=view==="chat"?"Manager online · prototype":"Section ready · prototype";
+ document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+ $("page").innerHTML=views[view]();
+ $("composer").style.display=view==="chat"?"block":"none";
+ renderAgents();renderRecent();
+ if(view==="settings"){const s=$("settingsProvider");s.value=state.provider;$("providerHelp").textContent=providerDescription();s.onchange=()=>{state.provider=s.value;save();$("model").value=state.provider;$("providerHelp").textContent=providerDescription()}}
+ if(view==="agents"){$("hireBtn").onclick=hire;document.querySelectorAll("[data-config]").forEach(b=>b.onclick=()=>alert("Employee configuration will become live with the backend agent system."))}
+ if(view==="tasks"){document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleTask(+b.dataset.toggle));document.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteTask(+b.dataset.delete));$("newTask").onclick=newTask}
+ if(view==="automations")$("newAutomation").onclick=()=>alert("Automation builder is queued for the live backend.");
+ if(view==="chat")setTimeout(()=>{if($("input"))$("input").focus()},0);
+}
+function navigate(view){location.hash="/"+view;if(state.view!==view){state.view=view;render()}else{history.replaceState(null,"","#/"+view);render()}}
+window.addEventListener("hashchange",()=>{state.view=location.hash.replace("#/","")||"chat";render()});
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>navigate(b.dataset.view));
+function send(){
+ const input=$("input"),c=input.value.trim();if(!c)return;
+ const picked=choose(c);
+ state.messages.push({role:"user",text:c});
+ state.tasks.unshift({text:c,assignees:picked.map(x=>x.name),status:"working",created:new Date().toLocaleString()});
+ state.chats.unshift({title:c.slice(0,48),messages:[...state.messages]});state.chats=state.chats.slice(0,12);
+ save();input.value="";state.view="chat";render();
+ $("plan").innerHTML=picked.map(e=>'<div class="row"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+'</div></div></div></div>').join("");
+ $("planBadge").textContent="working";
+ const toolText=state.selectedTools.length?" using "+state.selectedTools.join(", "):"";
+ state.messages.push({role:"assistant",text:"Manager routed this command to "+picked.map(x=>x.name).join(", ")+toolText+". The task is now saved in your Tasks queue."});
+ save();render();
+ setTimeout(()=>{if(state.tasks[0])state.tasks[0].status="done";$("planBadge").textContent="ready";save();render()},1000);
+}
+function newTask(){const t=prompt("Task description");if(!t)return;const p=prompt("Assign to (Nova, Writer, Alex, Pixel, Code)","Code")||"Code";state.tasks.unshift({text:t,assignees:[p],status:"working",created:new Date().toLocaleString()});save();render()}
+function toggleTask(i){state.tasks[i].status=state.tasks[i].status==="done"?"working":"done";save();render()}
+function deleteTask(i){state.tasks.splice(i,1);save();render()}
+function hire(){const n=$("hireName").value.trim(),r=$("hireRole").value.trim(),d=$("hireDept").value;if(!n||!r){alert("Enter a name and role.");return}employees.push({name:n,role:r,dept:d,icon:n[0].toUpperCase()});save();render()}
+function setupTools(){
+ const map=[["fileBtn","file analysis"],["webBtn","web search"],["imageBtn","image generation"],["multiBtn","multi-agent"]];
+ map.forEach(([id,label])=>$(id).onclick=()=>{const i=state.selectedTools.indexOf(label);if(i>=0){state.selectedTools.splice(i,1);$(id).classList.remove("selected")}else{state.selectedTools.push(label);$(id).classList.add("selected")}save();$("toolHint").textContent=state.selectedTools.length?"Selected: "+state.selectedTools.join(", "):"Commands are routed to the ShiftX Manager and the appropriate employees."});
+ $("fileBtn").onclick=()=>{$("fileInput").click()};
+ $("fileInput").onchange=e=>{const file=e.target.files[0];if(file){$("toolHint").textContent="File selected: "+file.name;state.selectedTools=["file analysis"];save()}};
+}
 $("send").onclick=send;$("input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
-function selectTool(id,label){$(id).classList.toggle("selected");const i=state.selectedTools.indexOf(label);if(i>=0)state.selectedTools.splice(i,1);else state.selectedTools.push(label);$("toolHint").textContent=state.selectedTools.length?"Selected: "+state.selectedTools.join(", "):"Commands are routed to the ShiftX Manager and the appropriate employees."}
-$("fileBtn").onclick=()=>{$("fileInput").click()};$("fileInput").onchange=e=>{if(e.target.files[0]){$("toolHint").textContent="File selected: "+e.target.files[0].name;state.selectedTools.push("file analysis")}};
-$("webBtn").onclick=()=>selectTool("webBtn","web search");$("imageBtn").onclick=()=>selectTool("imageBtn","image generation");$("multiBtn").onclick=()=>selectTool("multiBtn","multi-agent");
-render();
+$("model").onchange=()=>{state.provider=$("model").value;save();$("status").textContent=state.provider+" selected · live backend required"};$("model").value=state.provider;
+setupTools();render();
 </script>
 </body>
 </html>
