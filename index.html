@@ -111,10 +111,15 @@ function choose(c){
 }
 function providerDescription(){
  return {
-  "ShiftX Manager":"ShiftX's orchestration layer. In the live backend, this will plan tasks and route work.",
-  "Local Ollama":"Local model option for running AI on your computer with no per-request API bill.",
-  "Gemini":"Google Gemini provider option. A backend/API key is required for live calls.",
-  "OpenAI":"OpenAI provider option. A backend/API key is required for live calls."
+  "ShiftX Manager":"ShiftX's orchestration layer. It plans tasks and routes them to the workforce.",
+  "OpenRouter":"Unified gateway to hundreds of models. One server key can give ShiftX access to many providers.",
+  "OpenAI":"Direct OpenAI connection. Requires OPENAI_API_KEY on the server.",
+  "Anthropic":"Direct Claude connection. Requires ANTHROPIC_API_KEY on the server.",
+  "Google Gemini":"Direct Gemini connection. Requires GEMINI_API_KEY on the server.",
+  "xAI Grok":"Direct xAI connection. Requires XAI_API_KEY on the server.",
+  "Mistral":"Direct Mistral connection. Requires MISTRAL_API_KEY on the server.",
+  "Groq":"Direct Groq connection. Requires GROQ_API_KEY on the server.",
+  "Local Ollama":"Run local models on your own computer. Configure an Ollama endpoint on the machine running the backend."
  }[state.provider]||"Provider option";
 }
 function renderAgents(){
@@ -198,19 +203,31 @@ function render(){
 function navigate(view){location.hash="/"+view;if(state.view!==view){state.view=view;render()}else{history.replaceState(null,"","#/"+view);render()}}
 window.addEventListener("hashchange",()=>{state.view=location.hash.replace("#/","")||"chat";render()});
 document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>navigate(b.dataset.view));
-function send(){
+async function send(){
  const input=$("input"),c=input.value.trim();if(!c)return;
  const picked=choose(c);
  state.messages.push({role:"user",text:c});
- state.tasks.unshift({text:c,assignees:picked.map(x=>x.name),status:"working",created:new Date().toLocaleString()});
+ const task={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),text:c,assignees:picked.map(x=>x.name),status:"working",created:new Date().toLocaleString()};
+ state.tasks.unshift(task);
  state.chats.unshift({title:c.slice(0,48),messages:[...state.messages]});state.chats=state.chats.slice(0,12);
  save();input.value="";state.view="chat";render();
  $("plan").innerHTML=picked.map(e=>'<div class="row"><div class="left"><div class="agentico">'+e.icon+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+'</div></div></div></div>').join("");
  $("planBadge").textContent="working";
- const toolText=state.selectedTools.length?" using "+state.selectedTools.join(", "):"";
- state.messages.push({role:"assistant",text:"Manager routed this command to "+picked.map(x=>x.name).join(", ")+toolText+". The task is now saved in your Tasks queue."});
- save();render();
- setTimeout(()=>{if(state.tasks[0])state.tasks[0].status="done";$("planBadge").textContent="ready";save();render()},1000);
+ const history=[{role:"system",content:"You are ShiftX Manager, an AI company manager. The user is the CEO. Plan the work, be concise, and explain what you delegated."},...state.messages.filter(m=>m.role==="user"||m.role==="assistant").slice(-20)];
+ let text="";
+ if(state.provider==="ShiftX Manager"){
+   text="Manager routed this command to "+picked.map(x=>x.name).join(", ")+". The task is saved in your Tasks queue. Select a connected AI provider in the AI Hub to get a live model response.";
+ }else{
+   try{
+     const res=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider:state.provider,model:state.model||undefined,messages:history})});
+     const data=await res.json().catch(()=>({}));
+     if(!res.ok)throw new Error(data.error||("Backend returned "+res.status));
+     text=data.text||"The model returned no text.";
+   }catch(err){
+     text="The "+state.provider+" connector is not live on this GitHub Pages build yet. "+(err?.message||"Deploy the included /api/chat backend on Cloudflare Pages and add its server secret, then this provider will answer here.");
+   }
+ }
+ task.status="done";save();state.messages.push({role:"assistant",text});state.chats[0].messages=[...state.messages];save();$("planBadge").textContent="ready";render();
 }
 function newTask(){const t=prompt("Task description");if(!t)return;const p=prompt("Assign to (Nova, Writer, Alex, Pixel, Code)","Code")||"Code";state.tasks.unshift({text:t,assignees:[p],status:"working",created:new Date().toLocaleString()});save();render()}
 function toggleTask(i){state.tasks[i].status=state.tasks[i].status==="done"?"working":"done";save();render()}
