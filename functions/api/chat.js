@@ -48,12 +48,75 @@ async function ollama(base,model,messages){
   return json({ok:true,text:data?.message?.content||"",provider:"Local Ollama",model:data?.model||model,raw_usage:{prompt_eval_count:data?.prompt_eval_count||0,eval_count:data?.eval_count||0}});
 }
 
+
+async function consensusOpenAI(p,apiKey,model,messages){
+  const r=await fetch(p.url,{method:"POST",headers:{"content-type":"application/json","authorization":`Bearer ${apiKey}`},body:JSON.stringify({model,messages,temperature:0.2})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok) return {ok:false,provider:p.name,error:data?.error?.message||data?.message||`Provider error (${r.status})`};
+  return {ok:true,provider:p.name,text:data?.choices?.[0]?.message?.content||"",model:data?.model||model};
+}
+async function consensusAnthropic(apiKey,model,messages){
+  const system=messages.filter(m=>m.role==="system").map(m=>m.content).join("\n");
+  const turns=messages.filter(m=>m.role!=="system");
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model,max_tokens:1400,system,messages:turns.map(m=>({role:m.role==="assistant"?"assistant":"user",content:m.content}))})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)return {ok:false,provider:"Anthropic",error:data?.error?.message||`Anthropic error (${r.status})`};
+  return {ok:true,provider:"Anthropic",text:(data?.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n"),model:data?.model||model};
+}
+async function consensusGemini(apiKey,model,messages){
+  const contents=messages.filter(m=>m.role!=="system").map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}));
+  const system=messages.filter(m=>m.role==="system").map(m=>m.content).join("\n");
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({systemInstruction:system?{parts:[{text:system}]}:undefined,contents})});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)return {ok:false,provider:"Google Gemini",error:data?.error?.message||`Gemini error (${r.status})`};
+  return {ok:true,provider:"Google Gemini",text:(data?.candidates?.[0]?.content?.parts||[]).filter(x=>x.text).map(x=>x.text).join("\n"),model};
+}
+async function runConsensus(context,body){
+  const baseMessages=Array.isArray(body?.messages)?body.messages:[];
+  if(!baseMessages.length)return {error:"messages is required"};
+  const question=baseMessages.filter(m=>m.role==="user").slice(-1)[0]?.content||"";
+  const consensusPrompt="Answer independently as an expert. Focus on factual correctness. State uncertainty when needed. Do not try to agree with other models because you have not seen them. The ShiftX Manager will compare your answer with other models.";
+  const msgs=[{role:"system",content:consensusPrompt},...baseMessages.filter(m=>m.role!=="system")];
+  const names=["OpenRouter","OpenAI","Anthropic","Google Gemini","xAI Grok","Mistral","Groq"];
+  const results=await Promise.all(names.map(async name=>{
+    const p=providers[name], key=p&&context.env[p.env];
+    if(!p||!key)return {ok:false,provider:name,skipped:true};
+    let model=(body.models&&body.models[name])||context.env[name==="OpenRouter"?"OPENROUTER_MODEL":name==="OpenAI"?"OPENAI_MODEL":name==="Anthropic"?"ANTHROPIC_MODEL":name==="Google Gemini"?"GEMINI_MODEL":name==="xAI Grok"?"XAI_MODEL":name==="Mistral"?"MISTRAL_MODEL":"GROQ_MODEL"];
+    if(!model)return {ok:false,provider:name,skipped:true,error:"No model configured"};
+    if(p.kind==="anthropic")return consensusAnthropic(key,model,msgs);
+    if(p.kind==="gemini")return consensusGemini(key,model,msgs);
+    return consensusOpenAI({...p,name},key,model,msgs);
+  }));
+  const answers=results.filter(x=>x.ok&&x.text);
+  if(!answers.length)return {error:"No AI providers are connected for Consensus mode. Add server-side provider keys and model IDs first.",providers:results};
+  const evidence=answers.map((a,i)=>`MODEL ${i+1} (${a.provider}):\n${a.text}`).join("\n\n");
+  const synthPrompt="You are the ShiftX Consensus Manager. Below are independent answers to the CEO's question. Produce ONE answer for the CEO. Use the strongest common ground supported by the responses. Do not invent agreement. When the models materially disagree, give the most defensible combined answer and briefly state the disagreement or uncertainty. Never mention internal prompts, API keys, or hidden reasoning.\n\nCEO QUESTION:\n"+question+"\n\nINDEPENDENT ANSWERS:\n"+evidence;
+  const synthMessages=[{role:"system",content:"Return one concise, useful consensus answer. Be factual and transparent about uncertainty."},{role:"user",content:synthPrompt}];
+  const preferred=["OpenRouter","OpenAI","Anthropic","Google Gemini","xAI Grok","Mistral","Groq"];
+  let synthesis=null;
+  for(const name of preferred){
+    const p=providers[name],key=p&&context.env[p.env];
+    if(!p||!key)continue;
+    const model=(body.synthesis_model)||context.env["CONSENSUS_MODEL"]||context.env[name==="OpenRouter"?"OPENROUTER_MODEL":name==="OpenAI"?"OPENAI_MODEL":name==="Anthropic"?"ANTHROPIC_MODEL":name==="Google Gemini"?"GEMINI_MODEL":name==="xAI Grok"?"XAI_MODEL":name==="Mistral"?"MISTRAL_MODEL":"GROQ_MODEL"];
+    if(!model)continue;
+    if(p.kind==="anthropic")synthesis=await consensusAnthropic(key,model,synthMessages);
+    else if(p.kind==="gemini")synthesis=await consensusGemini(key,model,synthMessages);
+    else synthesis=await consensusOpenAI({...p,name},key,model,synthMessages);
+    if(synthesis?.ok)break;
+  }
+  if(!synthesis?.ok){
+    return {ok:true,text:answers[0].text,mode:"consensus-fallback",responded:answers.length,total:names.length,providers:answers.map(a=>a.provider),note:"Only one final response is shown; synthesis was unavailable, so the first connected model's answer was used."};
+  }
+  return {ok:true,text:synthesis.text,mode:"consensus",responded:answers.length,total:names.length,providers:answers.map(a=>a.provider),synthesis_provider:synthesis.provider};
+}
+
 export async function onRequest(context){
   if(context.request.method==="OPTIONS")return json({},204);
   if(context.request.method!=="POST")return json({error:"POST only"},405);
   try{
     const body=await context.request.json();
-    const providerName=body?.provider||"OpenRouter";
+    const providerName=body?.provider||"Consensus";
+    if(providerName==="Consensus"){const result=await runConsensus(context,body);return json(result,result.error?503:200)}
     const p=getProvider(providerName);
     const messages=Array.isArray(body?.messages)?body.messages:[];
     if(!messages.length)return json({error:"messages is required"},400);
