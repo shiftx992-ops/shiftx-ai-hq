@@ -44,7 +44,7 @@ button,input,textarea,select{font:inherit}.app{min-height:100vh;display:grid;gri
 
 <section class="main">
 <div class="topbar"><div><div class="top-title" id="title">ShiftX Chat</div><div class="status" id="status">Manager online · prototype</div></div><select class="model" id="model">
-<option value="ShiftX Manager">ShiftX Manager</option>
+<option value="Consensus">Consensus — All connected AIs</option><option value="ShiftX Manager">ShiftX Manager</option>
 <option value="OpenRouter">OpenRouter — 100s of models</option>
 <option value="OpenAI">OpenAI</option>
 <option value="Anthropic">Anthropic Claude</option>
@@ -86,7 +86,7 @@ const state={
  chats:JSON.parse(localStorage.sxChats||"[]"),
  tasks:JSON.parse(localStorage.sxTasks||"[]"),
  selectedTools:JSON.parse(localStorage.sxTools||"[]"),
- provider:localStorage.sxProvider||"ShiftX Manager",model:localStorage.sxModel||""
+ provider:localStorage.sxProvider||"Consensus",model:localStorage.sxModel||""
 };
 
 const $=id=>document.getElementById(id);
@@ -111,6 +111,7 @@ function choose(c){
 }
 function providerDescription(){
  return {
+  "Consensus":"Ask every connected AI provider the same question, compare the independent answers, and return one final consensus response.",
   "ShiftX Manager":"ShiftX's orchestration layer. It plans tasks and routes them to the workforce.",
   "OpenRouter":"Unified gateway to hundreds of models. One server key can give ShiftX access to many providers.",
   "OpenAI":"Direct OpenAI connection. Requires OPENAI_API_KEY on the server.",
@@ -170,6 +171,7 @@ function renderCompany(){
 }
 function renderSettings(){
  const providers=[
+  ["Consensus","Ask all connected providers the same question and return one synthesized answer.","CONNECTED PROVIDERS","One reply"],
   ["OpenRouter","Unified gateway to hundreds of models. Recommended for the first live multi-model setup.","OPENROUTER_API_KEY","Live through /api/chat"],
   ["OpenAI","Direct OpenAI models and tools.","OPENAI_API_KEY","Live through /api/chat"],
   ["Anthropic","Direct Claude connection.","ANTHROPIC_API_KEY","Live through /api/chat"],
@@ -180,7 +182,7 @@ function renderSettings(){
   ["Local Ollama","Run models on your own computer.","OLLAMA_BASE_URL","Local only"]
  ];
  return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>AI Hub</h1><p>ShiftX can route work to multiple AI providers. Keys belong on the server, never in this public repository.</p></div>'+
- '<div class="grid"><div class="panel"><h2>Active brain</h2><div class="field"><label>Provider</label><select id="settingsProvider"><option value="ShiftX Manager">ShiftX Manager</option><option value="OpenRouter">OpenRouter</option><option value="OpenAI">OpenAI</option><option value="Anthropic">Anthropic Claude</option><option value="Google Gemini">Google Gemini</option><option value="xAI Grok">xAI Grok</option><option value="Mistral">Mistral</option><option value="Groq">Groq</option><option value="Local Ollama">Local Ollama</option></select></div><div class="field" style="margin-top:9px"><label>Model ID</label><input id="settingsModel" placeholder="Example: openrouter/free"></div><p id="providerHelp" style="margin-top:10px"></p><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div>'+
+ '<div class="grid"><div class="panel"><h2>Active brain</h2><div class="field"><label>Provider</label><select id="settingsProvider"><option value="Consensus">Consensus — All connected AIs</option><option value="ShiftX Manager">ShiftX Manager</option><option value="OpenRouter">OpenRouter</option><option value="OpenAI">OpenAI</option><option value="Anthropic">Anthropic Claude</option><option value="Google Gemini">Google Gemini</option><option value="xAI Grok">xAI Grok</option><option value="Mistral">Mistral</option><option value="Groq">Groq</option><option value="Local Ollama">Local Ollama</option></select></div><div class="field" style="margin-top:9px"><label>Model ID</label><input id="settingsModel" placeholder="Example: openrouter/free"></div><p id="providerHelp" style="margin-top:10px"></p><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div>'+
  '<div class="panel"><h2>Connected providers</h2>'+providers.map(p=>'<div class="row"><div><b>'+p[0]+'</b><div class="meta">'+p[1]+'</div><div class="meta">Server key: '+p[2]+'</div></div><span class="badge">'+p[3]+'</span></div>').join("")+'</div>'+
  '<div class="panel"><h2>How this works</h2><p>OpenRouter can give ShiftX one unified route to a large catalog of models. Direct provider adapters are also included so the Manager can use a provider-specific key later.</p><p><b>No keys are embedded in GitHub.</b> They must be set as server environment secrets when the backend is deployed.</p></div>'+
  '<div class="panel"><h2>Prototype data</h2><p>Tasks, chats, and preferences are stored locally in this browser until the persistent backend is connected.</p><button class="danger" id="clearData">Clear local data</button></div></div></div>';
@@ -216,15 +218,18 @@ async function send(){
  const history=[{role:"system",content:"You are ShiftX Manager, an AI company manager. The user is the CEO. Plan the work, be concise, and explain what you delegated."},...state.messages.filter(m=>m.role==="user"||m.role==="assistant").slice(-20)];
  let text="";
  if(state.provider==="ShiftX Manager"){
-   text="Manager routed this command to "+picked.map(x=>x.name).join(", ")+". The task is saved in your Tasks queue. Select a connected AI provider in the AI Hub to get a live model response.";
+   text="Manager routed this command to "+picked.map(x=>x.name).join(", ")+". The task is saved in your Tasks queue. Select Consensus or a connected provider in the AI Hub to get a live model response.";
  }else{
    try{
-     const res=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider:state.provider,model:state.model||undefined,messages:history})});
+     const payload={provider:state.provider,model:state.model||undefined,messages:history};
+     if(state.provider==="Consensus")payload.models={};
+     const res=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
      const data=await res.json().catch(()=>({}));
      if(!res.ok)throw new Error(data.error||("Backend returned "+res.status));
-     text=data.text||"The model returned no text.";
+     text=data.text||"The AI system returned no text.";
+     if(state.provider==="Consensus"&&data.responded)text+="\n\nConsensus: "+data.responded+" of "+data.total+" connected AI providers responded.";
    }catch(err){
-     text="The "+state.provider+" connector is not live on this GitHub Pages build yet. "+(err?.message||"Deploy the included /api/chat backend on Cloudflare Pages and add its server secret, then this provider will answer here.");
+     text=state.provider==="Consensus"?"Consensus is not live on this GitHub Pages build yet. "+(err?.message||"Deploy the included /api/chat backend on Cloudflare Pages and add the connected provider secrets."):"The "+state.provider+" connector is not live on this GitHub Pages build yet. "+(err?.message||"Deploy the included /api/chat backend on Cloudflare Pages and add its server secret, then this provider will answer here.");
    }
  }
  task.status="done";save();state.messages.push({role:"assistant",text});state.chats[0].messages=[...state.messages];save();$("planBadge").textContent="ready";render();
