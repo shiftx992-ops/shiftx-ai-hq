@@ -43,7 +43,17 @@ button,input,textarea,select{font:inherit}.app{min-height:100vh;display:grid;gri
 </aside>
 
 <section class="main">
-<div class="topbar"><div><div class="top-title" id="title">ShiftX Chat</div><div class="status" id="status">Manager online · prototype</div></div><select class="model" id="model"><option>ShiftX Manager</option><option>Local Ollama</option><option>Gemini</option><option>OpenAI</option></select></div>
+<div class="topbar"><div><div class="top-title" id="title">ShiftX Chat</div><div class="status" id="status">Manager online · prototype</div></div><select class="model" id="model">
+<option value="ShiftX Manager">ShiftX Manager</option>
+<option value="OpenRouter">OpenRouter — 100s of models</option>
+<option value="OpenAI">OpenAI</option>
+<option value="Anthropic">Anthropic Claude</option>
+<option value="Google Gemini">Google Gemini</option>
+<option value="xAI Grok">xAI Grok</option>
+<option value="Mistral">Mistral</option>
+<option value="Groq">Groq</option>
+<option value="Local Ollama">Local Ollama</option>
+</select></div>
 <div class="page" id="page"></div>
 <div class="composer" id="composer">
 <div class="composerbox">
@@ -76,7 +86,7 @@ const state={
  chats:JSON.parse(localStorage.sxChats||"[]"),
  tasks:JSON.parse(localStorage.sxTasks||"[]"),
  selectedTools:JSON.parse(localStorage.sxTools||"[]"),
- provider:localStorage.sxProvider||"ShiftX Manager"
+ provider:localStorage.sxProvider||"ShiftX Manager",model:localStorage.sxModel||""
 };
 
 const $=id=>document.getElementById(id);
@@ -85,7 +95,7 @@ function save(){
  localStorage.sxChats=JSON.stringify(state.chats);
  localStorage.sxTasks=JSON.stringify(state.tasks);
  localStorage.sxTools=JSON.stringify(state.selectedTools);
- localStorage.sxProvider=state.provider;
+ localStorage.sxProvider=state.provider;localStorage.sxModel=state.model||"";
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function choose(c){
@@ -154,9 +164,21 @@ function renderCompany(){
  '<div class="panel"><h2>Current workforce</h2><p>'+employees.map(e=>e.name+' — '+e.role).join('<br>')+'</p></div></div></div>';
 }
 function renderSettings(){
- return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>Settings</h1><p>Choose the AI provider the ShiftX Manager will use when the live backend is connected.</p></div>'+
- '<div class="grid"><div class="panel"><h2>AI Brain</h2><div class="field"><label>Provider / model source</label><select id="settingsProvider"><option>ShiftX Manager</option><option>Local Ollama</option><option>Gemini</option><option>OpenAI</option></select></div><p id="providerHelp" style="margin-top:10px"></p><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div>'+
- '<div class="panel"><h2>Prototype data</h2><p>Tasks, chats, and settings are stored locally in this browser until the backend is connected.</p><button class="danger" id="clearData">Clear local data</button></div></div></div>';
+ const providers=[
+  ["OpenRouter","Unified gateway to hundreds of models. Recommended for the first live multi-model setup.","OPENROUTER_API_KEY","Live through /api/chat"],
+  ["OpenAI","Direct OpenAI models and tools.","OPENAI_API_KEY","Live through /api/chat"],
+  ["Anthropic","Direct Claude connection.","ANTHROPIC_API_KEY","Live through /api/chat"],
+  ["Google Gemini","Direct Gemini connection.","GEMINI_API_KEY","Live through /api/chat"],
+  ["xAI Grok","Direct xAI inference.","XAI_API_KEY","Live through /api/chat"],
+  ["Mistral","Direct Mistral models.","MISTRAL_API_KEY","Live through /api/chat"],
+  ["Groq","Fast OpenAI-compatible inference.","GROQ_API_KEY","Live through /api/chat"],
+  ["Local Ollama","Run models on your own computer.","OLLAMA_BASE_URL","Local only"]
+ ];
+ return '<div class="page-inner"><div class="hero" style="padding-top:20px"><h1>AI Hub</h1><p>ShiftX can route work to multiple AI providers. Keys belong on the server, never in this public repository.</p></div>'+
+ '<div class="grid"><div class="panel"><h2>Active brain</h2><div class="field"><label>Provider</label><select id="settingsProvider"><option value="ShiftX Manager">ShiftX Manager</option><option value="OpenRouter">OpenRouter</option><option value="OpenAI">OpenAI</option><option value="Anthropic">Anthropic Claude</option><option value="Google Gemini">Google Gemini</option><option value="xAI Grok">xAI Grok</option><option value="Mistral">Mistral</option><option value="Groq">Groq</option><option value="Local Ollama">Local Ollama</option></select></div><div class="field" style="margin-top:9px"><label>Model ID</label><input id="settingsModel" placeholder="Example: openrouter/free"></div><p id="providerHelp" style="margin-top:10px"></p><div class="check"><input type="checkbox" checked> <span>Require CEO approval before external publishing or paid actions.</span></div></div>'+
+ '<div class="panel"><h2>Connected providers</h2>'+providers.map(p=>'<div class="row"><div><b>'+p[0]+'</b><div class="meta">'+p[1]+'</div><div class="meta">Server key: '+p[2]+'</div></div><span class="badge">'+p[3]+'</span></div>').join("")+'</div>'+
+ '<div class="panel"><h2>How this works</h2><p>OpenRouter can give ShiftX one unified route to a large catalog of models. Direct provider adapters are also included so the Manager can use a provider-specific key later.</p><p><b>No keys are embedded in GitHub.</b> They must be set as server environment secrets when the backend is deployed.</p></div>'+
+ '<div class="panel"><h2>Prototype data</h2><p>Tasks, chats, and preferences are stored locally in this browser until the persistent backend is connected.</p><button class="danger" id="clearData">Clear local data</button></div></div></div>';
 }
 function render(){
  const views={chat:renderChat,agents:renderAgentsPage,knowledge:renderKnowledge,projects:renderProjects,automations:renderAutomations,tasks:renderTasks,company:renderCompany,settings:renderSettings};
@@ -167,7 +189,7 @@ function render(){
  $("page").innerHTML=views[view]();
  $("composer").style.display=view==="chat"?"block":"none";
  renderAgents();renderRecent();
- if(view==="settings"){const s=$("settingsProvider");s.value=state.provider;$("providerHelp").textContent=providerDescription();s.onchange=()=>{state.provider=s.value;save();$("model").value=state.provider;$("providerHelp").textContent=providerDescription()}}
+ if(view==="settings"){const s=$("settingsProvider"),m=$("settingsModel");s.value=state.provider;m.value=state.model||"";$("providerHelp").textContent=providerDescription();s.onchange=()=>{state.provider=s.value;state.model=m.value;save();$("model").value=state.provider;$("providerHelp").textContent=providerDescription()};m.oninput=()=>{state.model=m.value;save()};$("clearData").onclick=clearData}
  if(view==="agents"){$("hireBtn").onclick=hire;document.querySelectorAll("[data-config]").forEach(b=>b.onclick=()=>alert("Employee configuration will become live with the backend agent system."))}
  if(view==="tasks"){document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleTask(+b.dataset.toggle));document.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteTask(+b.dataset.delete));$("newTask").onclick=newTask}
  if(view==="automations")$("newAutomation").onclick=()=>alert("Automation builder is queued for the live backend.");
@@ -201,7 +223,7 @@ function setupTools(){
  $("fileInput").onchange=e=>{const file=e.target.files[0];if(file){$("toolHint").textContent="File selected: "+file.name;state.selectedTools=["file analysis"];save()}};
 }
 $("send").onclick=send;$("input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
-$("model").onchange=()=>{state.provider=$("model").value;save();$("status").textContent=state.provider+" selected · live backend required"};$("model").value=state.provider;
+$("model").onchange=()=>{state.provider=$("model").value;save();$("status").textContent=state.provider+" selected";};$("model").value=state.provider;
 setupTools();render();
 </script>
 </body>
