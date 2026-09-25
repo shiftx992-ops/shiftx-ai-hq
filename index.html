@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShiftX Agent — AI Company HQ</title>
+<style>
+:root{--bg:#080b14;--panel:#101526;--panel2:#151b2f;--line:#252d46;--text:#eef2ff;--muted:#9aa5c0;--accent:#7c5cff;--good:#20d6a7}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 20% 0,#172043,#080b14 45%);color:var(--text)}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{padding:22px;border-right:1px solid var(--line);background:#090d17}.brand{display:flex;gap:10px;align-items:center;margin-bottom:26px}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7c5cff,#24b8ff);display:grid;place-items:center;font-weight:900}.brand b{font-size:15px}.brand small{display:block;color:var(--muted);font-size:10px}.nav{display:grid;gap:6px}.nav button{padding:11px;border:0;border-radius:10px;background:transparent;color:var(--muted);text-align:left;cursor:pointer}.nav button:hover,.nav button.active{background:var(--panel2);color:var(--text)}
+main{padding:28px;max-width:1250px;width:100%;margin:auto}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#a898ff;font-weight:800}.top{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px}.title{font-size:32px;margin:6px 0}.sub{color:var(--muted)}.pill{border:1px solid var(--line);padding:9px 12px;border-radius:999px;color:var(--muted);height:max-content}
+.command{border:1px solid #303a5e;border-radius:18px;padding:18px;background:linear-gradient(145deg,#141a32,#0f1424);margin-bottom:20px}.head{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}.hint{font-size:12px;color:var(--muted)}textarea{width:100%;min-height:90px;background:#0a0f1d;border:1px solid var(--line);border-radius:12px;color:var(--text);padding:12px;resize:vertical;outline:0}.actions{display:flex;gap:10px;margin-top:10px}.btn{border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:750;border:1px solid var(--line)}.primary{background:var(--accent);color:#fff;border:0}.secondary{background:var(--panel2);color:var(--text)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.stat,.panel{background:rgba(16,21,38,.75);border:1px solid var(--line);border-radius:14px}.stat{padding:15px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:26px;margin-top:5px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.panel{overflow:hidden}.panelhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.rows{padding:14px;display:grid;gap:9px}.row{display:flex;justify-content:space-between;align-items:center;padding:11px;border:1px solid var(--line);border-radius:11px;background:#0c1120}.left{display:flex;gap:10px;align-items:center}.avatar{width:34px;height:34px;border-radius:10px;background:#222c49;display:grid;place-items:center}.meta{font-size:12px;color:var(--muted)}.badge{font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}.working{color:#61eac4;background:#0d251f;border-color:#184c40}.activity{padding:14px;max-height:390px;overflow:auto}.item{padding:10px 2px;border-bottom:1px solid var(--line)}.item:last-child{border:0}.item small{display:block;color:var(--muted);margin-top:3px}.empty{padding:20px;text-align:center;color:var(--muted)}
+@media(max-width:850px){.app{grid-template-columns:1fr}.side{display:none}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}main{padding:18px}}
+@media(max-width:520px){.stats{grid-template-columns:1fr}.top{flex-direction:column}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand"><div class="logo">SX</div><div><b>SHIFTX AGENT</b><small>AI COMPANY HQ</small></div></div>
+<div class="nav">
+<button class="active">⌂ Dashboard</button><button>◉ Employees</button><button>▦ Departments</button><button>▤ Projects</button><button>✓ Tasks</button>
+</div>
+<div style="margin-top:24px;padding:14px;border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:12px">👑 <b style="color:var(--text)">You — CEO</b><br>Manager AI is ready.</div>
+</aside>
+<main>
+<div class="top"><div><div class="eyebrow">ShiftX Command Center</div><div class="title">Good evening, CEO.</div><div class="sub">Give the Manager a command and your AI company will turn it into work.</div></div><div class="pill">● System online</div></div>
+<div class="command">
+<div class="head"><b>CEO Command</b><span class="hint">Try: Research the best free AI video tools.</span></div>
+<textarea id="command" placeholder="What do you want ShiftX Agent to do?"></textarea>
+<div class="actions"><button class="btn primary" id="run">Execute Command</button><button class="btn secondary" id="demo">Run Demo</button></div>
+</div>
+<div class="stats">
+<div class="stat"><small>AI Employees</small><strong id="ec">5</strong></div>
+<div class="stat"><small>Active Tasks</small><strong id="tc">0</strong></div>
+<div class="stat"><small>Departments</small><strong>4</strong></div>
+<div class="stat"><small>Completed</small><strong id="cc">0</strong></div>
+</div>
+<div class="grid">
+<section class="panel"><div class="panelhead"><b>AI Workforce</b><button class="btn secondary" id="hire">+ Hire</button></div><div class="rows" id="workers"></div></section>
+<section class="panel"><div class="panelhead"><b>Manager Activity</b><button class="btn secondary" id="clear">Clear</button></div><div class="activity" id="activity"></div></section>
+</div>
+</main>
+</div>
+<script>
+const defaults=[
+{name:"Nova",role:"Research Analyst",dept:"Research",s:"idle"},
+{name:"Writer",role:"Script & Content",dept:"Video Production",s:"idle"},
+{name:"Alex",role:"Video Producer",dept:"Video Production",s:"idle"},
+{name:"Pixel",role:"Creative Designer",dept:"Creative",s:"idle"},
+{name:"Code",role:"Software Engineer",dept:"Engineering",s:"idle"}
+];
+let employees=JSON.parse(localStorage.sxEmployees||"null")||defaults;
+let tasks=JSON.parse(localStorage.sxTasks||"[]");
+let logs=JSON.parse(localStorage.sxLogs||"[]");
+const byId=id=>document.getElementById(id);
+function save(){localStorage.sxEmployees=JSON.stringify(employees);localStorage.sxTasks=JSON.stringify(tasks);localStorage.sxLogs=JSON.stringify(logs)}
+function addLog(a,b){logs.unshift({a,b,t:new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})});logs=logs.slice(0,30);save();render()}
+function choose(c){c=c.toLowerCase();let out=[];const add=n=>{let e=employees.find(x=>x.name.toLowerCase()===n.toLowerCase());if(e&&!out.includes(e))out.push(e)};
+if(/research|compare|find|fact|market|price/.test(c))add("Nova");
+if(/script|write|story|content|youtube|tiktok|reel/.test(c))add("Writer");
+if(/video|film|animation|prompt/.test(c))add("Alex");
+if(/thumbnail|logo|design|image|creative/.test(c))add("Pixel");
+if(/code|app|website|software|bug|build/.test(c))add("Code");
+return out.length?out:[employees[0]]}
+function run(c){if(!c.trim())return;const picked=choose(c);tasks.push({c,s:"working"});picked.forEach(e=>e.s="working");addLog("Manager created work","Command: "+c);picked.forEach(e=>addLog(e.name+" started work",e.role));render();setTimeout(()=>{picked.forEach(e=>e.s="idle");tasks[tasks.length-1].s="completed";addLog("Manager returned a result","Demo orchestration completed. Real AI tools are the next build.");},1500)}
+function render(){byId("ec").textContent=employees.length;byId("tc").textContent=tasks.filter(x=>x.s!=="completed").length;byId("cc").textContent=tasks.filter(x=>x.s==="completed").length;
+byId("workers").innerHTML=employees.map(e=>'<div class="row"><div class="left"><div class="avatar">'+e.name[0]+'</div><div><b>'+e.name+'</b><div class="meta">'+e.role+" · "+e.dept+'</div></div></div><span class="badge '+(e.s==="working"?"working":"")+'">'+e.s+'</span></div>').join("");
+byId("activity").innerHTML=logs.length?logs.map(x=>'<div class="item"><b>'+x.a+'</b><small>'+x.b+" · "+x.t+"</small></div>").join(""):'<div class="empty">No activity yet.</div>'}
+byId("run").onclick=()=>run(byId("command").value);
+byId("demo").onclick=()=>{byId("command").value="Research the best free AI video tools and create a report for the CEO.";run(byId("command").value)};
+byId("clear").onclick=()=>{logs=[];save();render()};
+byId("hire").onclick=()=>{let n=prompt("Employee name");if(!n)return;let r=prompt("Role");if(!r)return;employees.push({name:n,role:r,dept:"New Department",s:"idle"});addLog("Hired "+n,r);};
+render();
+</script>
+</body>
+</html>
